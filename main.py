@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Request, Header
 import json
+from time import sleep
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from telebot import TeleBot
+from fastapi.responses import RedirectResponse
 bot = TeleBot("5463120320:AAEDXKo6B3yzK2kZqDtX-j6M9Km4Sd54kgA")
 import time
 
@@ -19,6 +21,7 @@ class userData(BaseModel):
     name: str
     userClass: str
     phoneNumber: str
+    ipAddress: str
 
 @app.get("/")
 async def root():
@@ -30,16 +33,16 @@ async def serverResponse():
 
 @app.post("/register")
 async def register(request: Request, userData: userData, user_agent: str | None = Header(default=None)):
-    consDict = {"name" : userData.name, "userClass" : userData.userClass, "phoneNumber" : userData.phoneNumber, "ts" : str(int(time.time())), "device_info" : {"user_agent" : user_agent, "x-ip" : str(request.headers.get("HTTP_CF_CONNECTING_IP"))}, "message": "User registered successfully."}
+    consDict = {"name" : userData.name, "userClass" : userData.userClass, "phoneNumber" : userData.phoneNumber, "ts" : str(int(time.time())), "device_info" : {"user_agent" : user_agent, "x-ip" : str(userData.ipAddress)}, "message": "User registered successfully."}
     if len(userData.name) < 3:
         return {"message": "Oops! Pastikan kolom NAMA yang kamu isi sudah sesuai.",
-                "status": 400}
+                "status_code": 400}
     if len(userData.userClass) < 1:
         return {"message": "Oops! Pastikan kolom KELAS yang kamu isi sudah sesuai.",
-                "status": 400}
+                "status_code": 400}
     if len(userData.phoneNumber) < 9:
         return {"message": "Oops! Pastikan kolom Nomor Telepon yang kamu isi sudah sesuai.",
-                "status": 400}
+                "status_code": 400}
     with open("data.json", "a") as outfile:
         outfile.write(str(consDict) + ",\n")
     outfile.close()
@@ -53,6 +56,12 @@ Kelas  : {userData.userClass}
 <pre>No. Telp  : </pre><pre>{userData.phoneNumber}</pre><pre>
 Link WhatsApp  :</pre> https://wa.me/62{userData.phoneNumber}"""
     messagecid = -1001574503712
-    bot.send_message(messagecid, constructString, parse_mode="HTML", disable_web_page_preview=True)
+    while True:
+        try:
+            bot.send_message(messagecid, constructString, parse_mode="HTML", disable_web_page_preview=True)
+            break
+        except:
+            sleep(3)
+            continue
     return {"message": "OK",
-            "status": 200}
+            "status_code": 200}
